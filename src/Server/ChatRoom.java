@@ -1,0 +1,60 @@
+package Server;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.Socket;
+
+public class ChatRoom {
+    public static final String ANSI_RESET = "\u001B[0m";
+    public static final String ANSI_BLACK = "\u001B[30m";
+    public static final String ANSI_RED = "\u001B[31m";
+    public static final String ANSI_GREEN = "\u001B[32m";
+    public static final String ANSI_YELLOW = "\u001B[33m";
+    public static final String ANSI_BLUE = "\u001B[34m";
+    public static final String ANSI_PURPLE = "\u001B[35m";
+    public static final String ANSI_CYAN = "\u001B[36m";
+    public static final String ANSI_WHITE = "\u001B[37m";
+
+    private int maxConnect;
+    private int connected;
+
+    private ChatServerThread[] cst;
+
+    public ChatRoom(int maxUsers){
+        maxConnect = maxUsers;
+        connected = 0;
+
+        cst = new ChatServerThread[maxConnect];
+    }
+
+    public void addUser(Socket soc) throws IOException {
+        if(connected < maxConnect) { // if room is not full yet
+            cst[connected] = new ChatServerThread(soc, this);
+            cst[connected].start();
+            connected++;
+        }
+        else{ // if room is full reject user
+            PrintWriter out = new PrintWriter(soc.getOutputStream(), true);
+            out.println("Room Full");
+        }
+    }
+
+    public void serverBroadcast(String msg){
+        // send to all clients
+        for(int i = 0; i < connected; i++){
+            cst[i].serverToClient(ANSI_GREEN + "[Server]: " + msg + ANSI_RESET);
+            System.out.println(ANSI_GREEN + "[Server]: " + msg + ANSI_RESET);
+        }
+    }
+
+    public void broadcast(String msg, ChatServerThread sender){
+        // send to all clients except the msg origin
+        for(int i = 0; i < connected; i++){
+            if(cst[i] != sender){
+                cst[i].sendToClient(ANSI_BLUE + "[" + sender.getUsername() + "]: " + ANSI_RESET + msg, sender.getUsername());
+                System.out.println(ANSI_BLUE + "[" + sender.getUsername() + "]: " + ANSI_RESET + msg);
+            }
+        }
+    }
+
+}
