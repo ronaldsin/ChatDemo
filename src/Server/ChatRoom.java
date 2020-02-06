@@ -3,6 +3,7 @@ package Server;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.ArrayList;
 
 public class ChatRoom {
     public static final String ANSI_RESET = "\u001B[0m";
@@ -18,19 +19,18 @@ public class ChatRoom {
     private int maxConnect;
     private int connected;
 
-    private ChatServerThread[] cst;
+    private ArrayList<ChatServerThread> cst = new ArrayList<ChatServerThread>();
 
     public ChatRoom(int maxUsers){
         maxConnect = maxUsers;
         connected = 0;
-
-        cst = new ChatServerThread[maxConnect];
     }
 
     public void addUser(Socket soc) throws IOException {
         if(connected < maxConnect) { // if room is not full yet
-            cst[connected] = new ChatServerThread(soc, this);
-            cst[connected].start();
+            ChatServerThread newUser = new ChatServerThread(soc, this);
+            cst.add(newUser);
+            cst.get(connected).start();
             connected++;
         }
         else{ // if room is full reject user
@@ -39,19 +39,30 @@ public class ChatRoom {
         }
     }
 
+    public void removeUser(ChatServerThread user){
+        for(int i = 0; i < cst.size(); i++){
+            if(cst.get(i) == user){
+                serverBroadcast(cst.get(i).getUsername() + " has disconnected");
+                cst.get(i).closeSoc();
+                cst.remove(i);
+                connected--;
+            }
+        }
+    }
+
     public void serverBroadcast(String msg){
         // send to all clients
-        for(int i = 0; i < connected; i++){
-            cst[i].serverToClient(ANSI_GREEN + "[Server]: " + msg + ANSI_RESET);
+        for(int i = 0; i < cst.size(); i++){
+            cst.get(i).serverToClient(ANSI_GREEN + "[Server]: " + msg + ANSI_RESET);
             System.out.println(ANSI_GREEN + "[Server]: " + msg + ANSI_RESET);
         }
     }
 
     public void broadcast(String msg, ChatServerThread sender){
         // send to all clients except the msg origin
-        for(int i = 0; i < connected; i++){
-            if(cst[i] != sender){
-                cst[i].sendToClient(ANSI_BLUE + "[" + sender.getUsername() + "]: " + ANSI_RESET + msg, sender.getUsername());
+        for(int i = 0; i < cst.size(); i++){
+            if(cst.get(i) != sender){
+                cst.get(i).sendToClient(ANSI_BLUE + "[" + sender.getUsername() + "]: " + ANSI_RESET + msg, sender.getUsername());
                 System.out.println(ANSI_BLUE + "[" + sender.getUsername() + "]: " + ANSI_RESET + msg);
             }
         }

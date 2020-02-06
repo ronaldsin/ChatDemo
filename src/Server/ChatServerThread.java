@@ -31,29 +31,49 @@ class ChatServerThread extends Thread{
 
         // wait for client to send username
         try {
-            serverToClient(ChatRoom.ANSI_GREEN + "[Server]: You have connected to the chat..." + ChatRoom.ANSI_RESET);
-            serverToClient(ChatRoom.ANSI_GREEN + "[Server]: Please enter a username:" + ChatRoom.ANSI_RESET);
+            try {
+                serverToClient(ChatRoom.ANSI_GREEN + "[Server]: You have connected to the chat..." + ChatRoom.ANSI_RESET);
+                serverToClient(ChatRoom.ANSI_GREEN + "[Server]: Please enter a username:" + ChatRoom.ANSI_RESET);
 
-            username = in.readLine();
+                username = in.readLine();
 
-            serverToClient(ChatRoom.ANSI_GREEN + "[Server]: Welcome " + username + " enjoy your stay" + ChatRoom.ANSI_RESET);
+                serverToClient(ChatRoom.ANSI_GREEN + "[Server]: Welcome " + username + " enjoy your stay. Type bye to exit." + ChatRoom.ANSI_RESET);
 
-            cr.serverBroadcast("[" + username + "] has connected" );
+                cr.serverBroadcast("[" + username + "] has connected");
 
-            serverToClient("connected");
-            connected = true;
+                serverToClient("connected");
+                connected = true;
+            } catch (SocketTimeoutException e) {
+                e.printStackTrace();
+                dc();
+            }
         } catch (IOException e) {
             e.printStackTrace();
+            dc();
         }
 
         // broadcast to chat when a new msg is received
         while(true){
             try {
-                BufferedReader in = new BufferedReader(new InputStreamReader(soc.getInputStream()));
-                cr.broadcast(in.readLine(), this);
-                serverToClient("received");
+                try{
+                    String msg = in.readLine();
+                    cr.broadcast(msg, this);
+
+                    if(msg.equals("bye")){
+                        cr.removeUser(this);
+                        break;
+                    }
+
+                    serverToClient("received");
+                } catch (SocketTimeoutException e) {
+                    e.printStackTrace();
+                    dc();
+                    break;
+                }
             } catch (IOException e) {
                 e.printStackTrace();
+                dc();
+                break;
             }
         }
     }
@@ -66,6 +86,19 @@ class ChatServerThread extends Thread{
 
     public void serverToClient(String msg){
         out.println(msg);
+    }
+
+    public void dc(){
+        System.err.println(username + " has unexpectedly disconnected");
+        cr.removeUser(this);
+    }
+
+    public void closeSoc(){
+        try {
+            soc.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public String getUsername(){
