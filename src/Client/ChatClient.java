@@ -13,32 +13,50 @@ public class ChatClient {
     private boolean connected = false;
 
     public ChatClient(){
-        try{
-            System.out.println("Client starting...");
+        System.out.println("Client starting...");
+        do {
+            try {
+                // connect to server
+                System.out.println("Attempting to connect to server...");
+                soc = new Socket("localhost", 25565);
+                System.out.println("Connection successful!");
+                break;
 
-            // connect to server
-            System.out.println("Attempting to connect to server...");
-            soc = new Socket("localhost", 9806);
-            System.out.println("Connection successful!");
+            } catch (Exception e) {
+                System.err.println("Connection failed...");
 
-            // start read write threads
-            System.out.println("Starting Read and Write Threads...");
+                try {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+
+                    System.out.println("Press enter to try again...");
+
+                    in.readLine();
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        }while(true);
+
+
+        // start read write threads
+        System.out.println("Starting Read and Write threads...");
+
+        try {
             rt = new ReadThread(soc, this);
             wt = new WriteThread(soc, this);
 
             rt.start();
             wt.start();
-        }
-        catch(Exception e){
+        } catch (IOException e) {
             e.printStackTrace();
-            System.out.println("Connection failed...");
+            System.err.println("Failed to start Read and Write threads...");
             System.out.println("Exiting...");
             System.exit(1);
         }
     }
 
 
-    public void stop(){
+    public void stop() throws IOException {
         System.out.println("Exiting...");
         System.exit(0);
     }

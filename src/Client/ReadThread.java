@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 
 public class ReadThread extends Thread {
     // text colors
@@ -34,21 +35,28 @@ public class ReadThread extends Thread {
         System.out.println("Read thread running...");
         while(true){
             try {
-                String msg = in.readLine();
+                try{
+                    String msg = in.readLine();
 
-                if(msg.equals("connected")) {
-                    client.setConnected(true);
-                }
-                else if(!msg.equals("received")) {
-                    System.out.println(msg); // prints anything the server sends to terminal
-                }
+                    if(msg.equals("connected")) {
+                        client.setConnected(true);
+                    }
+                    else if(!msg.equals("received")) {
+                        if(client.isConnected()) {
+                            System.out.print("\n");
+                        }
+                        System.out.println(msg); // prints anything the server sends to terminal
+                    }
 
-                if(msg.equals("Room Full")){ // if room is full terminate
-                    client.stop();
-                }
+                    if(msg.equals("Room Full")){ // if room is full terminate
+                        client.stop();
+                    }
 
-                if(client.isConnected()) {
-                    System.out.print(ANSI_BLUE + "[" + client.getUsername() + "]: " + ANSI_RESET); // print username after receiving msg
+                    if(client.isConnected()) {
+                        System.out.print(ANSI_CYAN + "[" + client.getUsername() + "]: " + ANSI_RESET); // print username after receiving msg
+                    }
+                } catch (SocketTimeoutException e) {
+                    e.printStackTrace();
                 }
             } catch (IOException e) {
                 e.printStackTrace();

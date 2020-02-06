@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 
 public class WriteThread extends Thread{
     Socket soc;
@@ -22,7 +23,7 @@ public class WriteThread extends Thread{
     }
 
     public void run(){
-        System.out.println("Write Thread running...");
+        System.out.println("Write Thread running...\n");
 
         // sends server username
         try {
@@ -35,7 +36,16 @@ public class WriteThread extends Thread{
 
         while(true){
             try {
-                write.println(in.readLine()); // sends user text to server
+                try{
+                    String msg = in.readLine();
+                    write.println(msg); // sends user text to server
+
+                    if(msg.equals("bye")){
+                        client.stop();
+                    }
+                } catch (SocketTimeoutException e) {
+                    e.printStackTrace();
+                }
             } catch (IOException e) {
                 e.printStackTrace();
             }
